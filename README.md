@@ -4,7 +4,8 @@
 
 [![License: GPL v2](https://img.shields.io/badge/License-GPL%20v2-blue.svg)](https://www.gnu.org/licenses/old-licenses/gpl-2.0.en.html)
 [![Shell: Bash](https://img.shields.io/badge/Shell-Bash-green.svg)](https://www.gnu.org/software/bash/)
-[![Platform: Linux](https://img.shields.io/badge/Platform-Linux-lightgrey.svg)](https://kernel.org/)
+[![PowerShell: 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-blue.svg)](https://microsoft.com/powershell)
+[![Platform: Linux | macOS | Windows](https://img.shields.io/badge/Platform-Linux%20%7C%20macOS%20%7C%20Windows-lightgrey.svg)](#)
 
 ---
 
@@ -16,32 +17,40 @@ Copy-pasting individual files is tedious. Zipping the repo is unreadable. There 
 
 ## The Solution
 
-`repo2text.sh` is a single Bash script that clones any GitHub repository and exports all its text-based files into **one clean, structured output file** — ready to paste into any AI assistant, use in automated pipelines, or archive for documentation purposes.
+`repo2text` clones any GitHub repository and exports all its text-based files into **one clean, structured output file** — ready to paste into any AI assistant, use in automated pipelines, or archive for documentation purposes.
 
-No installation. No dependencies beyond standard Linux tools. Just run it.
+Available for **all major platforms**:
+
+| Platform | Script | Requirements |
+|----------|--------|-------------|
+| Linux / macOS | `repo2text.sh` | Bash, git, jq, pv, zip |
+| Windows | `repo2text.ps1` | PowerShell 5.1+, git |
+
+No installation. No exotic frameworks. Just run it.
 
 ---
 
 ## Features
 
+- **Cross-platform** — Native Bash script for Linux/macOS, native PowerShell script for Windows
 - **Multiple output formats** — Export as plain text (`.txt`), JSON, or Markdown
-- **Intelligent file detection** — Three-stage check: MIME type, file extension, and binary detection ensure only real text files are included
+- **Intelligent file detection** — Multi-stage check ensures only real text files are included
 - **Automatic ZIP archive** — Every export automatically produces a compressed `.zip` alongside the text file
 - **SSH → HTTPS conversion** — Works seamlessly with both SSH and HTTPS remote URLs
 - **Smart Git integration** — Auto-detects the remote URL when run inside an existing Git repository
 - **Git status warning** — Warns you if there are uncommitted or unpushed changes before exporting
-- **Selective export** — Export only a specific subdirectory with `--only`
+- **Selective export** — Export only a specific subdirectory
 - **Flat mode** — Strip directory paths from filenames for a simplified output
 - **MD5 checksums** — Optionally compute and include an MD5 hash for every exported file
-- **Configurable exclusions** — Easily extend the list of ignored file extensions (`lock`, `log`, `tmp`, `bak`, etc.)
-- **Progress display** — Visual progress output via `pv` for large repositories
+- **Configurable exclusions** — Easily extend the list of ignored file extensions
+- **Progress display** — Visual progress output for large repositories
 - **Clean output** — Cloned repositories are automatically deleted after export
 
 ---
 
-## Requirements
+## Linux / macOS
 
-The following tools must be available on your system:
+### Requirements
 
 | Tool | Purpose | Install (Debian/Ubuntu) |
 |------|---------|------------------------|
@@ -53,9 +62,7 @@ The following tools must be available on your system:
 | `zip` | Archive creation | `apt install zip` |
 | `md5sum` | Checksum generation (optional) | pre-installed |
 
----
-
-## Installation
+### Installation
 
 ```bash
 # Clone the repository
@@ -68,15 +75,13 @@ chmod +x repo2text/repo2text.sh
 sudo cp repo2text/repo2text.sh /usr/local/bin/repo2text
 ```
 
----
-
-## Usage
+### Usage
 
 ```bash
 ./repo2text.sh [OPTIONS] [GitHub-Repository-URL]
 ```
 
-If no URL is provided, the script prompts for one interactively. When run inside a Git repository, the current remote URL is suggested automatically.
+If no URL is provided, the script prompts for one interactively. When run inside a Git repository, the current remote URL is detected and suggested automatically.
 
 ### Options
 
@@ -88,56 +93,154 @@ If no URL is provided, the script prompts for one interactively. When run inside
 | `-md5, --md5` | Compute and include an MD5 checksum for each file |
 | `-h, --help` | Display help information |
 
+### Examples
+
+```bash
+# Basic export — interactive URL prompt
+./repo2text.sh
+
+# Export a specific repository as plain text
+./repo2text.sh https://github.com/debian-professional/repo2text.git
+
+# Export as Markdown — ideal for AI assistants
+./repo2text.sh -f md https://github.com/your-username/your-repo.git
+
+# Export as JSON — ideal for automated pipelines
+./repo2text.sh -f json https://github.com/your-username/your-repo.git
+
+# Export only a specific subdirectory
+./repo2text.sh -o src https://github.com/your-username/your-repo.git
+
+# Export with flat filenames (no directory structure)
+./repo2text.sh --flat https://github.com/your-username/your-repo.git
+
+# Export with MD5 checksums for integrity verification
+./repo2text.sh -md5 https://github.com/your-username/your-repo.git
+
+# Combine options — Markdown export of a subdirectory with checksums
+./repo2text.sh -f md -o lib -md5 https://github.com/your-username/your-repo.git
+
+# Auto-detect URL when run inside a Git repository
+cd ~/projects/my-repo
+./repo2text.sh -f md
+# The script automatically detects and suggests the current remote URL
+```
+
+### How File Detection Works (Linux/macOS)
+
+`repo2text.sh` uses a three-stage verification process:
+
+1. **MIME type check** — `file --mime-type` must return a `text/*` type
+2. **Extension exclusion** — Files with extensions like `lock`, `log`, `tmp`, `bak`, `swp`, `cache` are skipped
+3. **Binary safety check** — `grep -Iq` confirms the file contains no binary data
+
 ---
 
-## Examples
+## Windows (PowerShell)
 
-### Basic export (interactive URL prompt)
-```bash
-./repo2text.sh
+### Requirements
+
+- **PowerShell 5.1 or higher** — pre-installed on Windows 10 and Windows 11
+- **Git for Windows** — download from [git-scm.com](https://git-scm.com/download/win)
+
+No additional tools required. Everything else uses built-in .NET functionality.
+
+### First-Time Setup
+
+Windows restricts the execution of PowerShell scripts by default. The following two steps are required **once** before first use.
+
+**Step 1 — Allow script execution:**
+
+Open PowerShell and run:
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 ```
 
-### Export a specific repository as plain text
-```bash
-./repo2text.sh https://github.com/debian-professional/repo2text.git
+Confirm with `Y` when prompted.
+
+**Step 2 — Unblock the downloaded script:**
+
+Because the script was downloaded from the internet, Windows marks it as potentially unsafe. Unblock it with:
+
+```powershell
+Unblock-File .\repo2text.ps1
 ```
 
-### Export as Markdown — ideal for AI assistants
-```bash
-./repo2text.sh -f md https://github.com/your-username/your-repo.git
+These two steps are only required once per machine.
+
+### Installation
+
+```powershell
+# Clone the repository
+git clone https://github.com/debian-professional/repo2text.git
+
+# Navigate into the directory
+cd repo2text
+
+# Unblock the script (required once after download)
+Unblock-File .\repo2text.ps1
 ```
 
-### Export as JSON — ideal for automated pipelines
-```bash
-./repo2text.sh -f json https://github.com/your-username/your-repo.git
+### Usage
+
+```powershell
+.\repo2text.ps1 [OPTIONS] [GitHub-Repository-URL]
 ```
 
-### Export only a specific subdirectory
-```bash
-./repo2text.sh -o src https://github.com/your-username/your-repo.git
+If no URL is provided, the script prompts for one interactively. When run inside a Git repository, the current remote URL is detected and suggested automatically — just press Enter to confirm.
+
+### Options
+
+| Option | Description |
+|--------|-------------|
+| `-Format` | Output format: `txt` (default), `json`, `md` / `markdown` |
+| `-Flat` | Use filenames only, without directory paths |
+| `-Only PATH` | Export only the specified subdirectory (relative to repository root) |
+| `-Md5` | Compute and include an MD5 checksum for each file |
+
+### Examples
+
+```powershell
+# Basic export — interactive URL prompt
+.\repo2text.ps1
+
+# Export a specific repository as plain text
+.\repo2text.ps1 https://github.com/debian-professional/repo2text.git
+
+# Export as Markdown — ideal for AI assistants
+.\repo2text.ps1 -Format md https://github.com/your-username/your-repo.git
+
+# Export as JSON — ideal for automated pipelines
+.\repo2text.ps1 -Format json https://github.com/your-username/your-repo.git
+
+# Export only a specific subdirectory
+.\repo2text.ps1 -Only src https://github.com/your-username/your-repo.git
+
+# Export with flat filenames (no directory structure)
+.\repo2text.ps1 -Flat https://github.com/your-username/your-repo.git
+
+# Export with MD5 checksums for integrity verification
+.\repo2text.ps1 -Md5 https://github.com/your-username/your-repo.git
+
+# Combine options — Markdown export of a subdirectory with checksums
+.\repo2text.ps1 -Format md -Only lib -Md5 https://github.com/your-username/your-repo.git
+
+# Auto-detect URL when run inside a Git repository
+cd C:\projects\my-repo
+.\repo2text.ps1 -Format md
+# The script automatically detects and suggests the current remote URL
 ```
 
-### Export with flat filenames (no directory structure)
-```bash
-./repo2text.sh --flat https://github.com/your-username/your-repo.git
-```
+### How File Detection Works (Windows/PowerShell)
 
-### Export with MD5 checksums for integrity verification
-```bash
-./repo2text.sh -md5 https://github.com/your-username/your-repo.git
-```
+`repo2text.ps1` uses a three-stage verification process adapted for Windows:
 
-### Combine options — Markdown export of a subdirectory with checksums
-```bash
-./repo2text.sh -f md -o lib -md5 https://github.com/your-username/your-repo.git
-```
+1. **Extension exclusion** — Files with extensions like `lock`, `log`, `tmp`, `bak`, `exe`, `dll`, `bin` are skipped
+2. **Null-byte check** — The first 8192 bytes are scanned for null bytes, which reliably identifies binary files
+3. **UTF-8 read test** — The file is opened as UTF-8 text; if it fails, the file is excluded
 
-### Auto-detect URL (run inside a Git repository)
-```bash
-cd ~/projects/my-repo
-repo2text -f md
-# The script automatically suggests the current repository's remote URL
-```
+This approach achieves the same reliability as the Linux MIME-type check without requiring any additional tools.
 
 ---
 
@@ -163,8 +266,11 @@ FILE: README.md
 
 ### Markdown (`.md`)
 ```markdown
-# Repository Export
-**Files:** 12 | **Date:** 2026-02-24 | **URL:** https://github.com/user/repo
+# Repo Export
+
+- **URL:** https://github.com/user/repo
+- **Files:** 12
+- **Date:** 2026-02-24 10:00:00
 
 ---
 
@@ -177,7 +283,7 @@ FILE: README.md
 ### JSON (`.json`)
 ```json
 {
-  "meta": {
+  "metadata": {
     "url": "https://github.com/user/repo",
     "date": "2026-02-24 10:00:00",
     "file_count": 12
@@ -199,12 +305,16 @@ FILE: README.md
 Export your repository and paste the output directly into ChatGPT, Claude, or any LLM. The model receives the full codebase as a single, structured input — no file switching, no fragmented context.
 
 ```bash
+# Linux/macOS
 repo2text -f md https://github.com/your-username/your-repo.git
-# Open the .md file, copy its contents, paste into your AI assistant
+```
+```powershell
+# Windows
+.\repo2text.ps1 -Format md https://github.com/your-username/your-repo.git
 ```
 
 ### 2. Feeding Context to Local LLMs
-When working with local models via Ollama, LM Studio, or similar tools, context window management is critical. Export only the relevant subdirectory to stay within token limits:
+When working with local models via Ollama, LM Studio, or similar tools, context window management is critical. Export only the relevant subdirectory to stay within token limits.
 
 ```bash
 repo2text -o backend/api -f txt https://github.com/your-username/your-repo.git
@@ -214,9 +324,7 @@ repo2text -o backend/api -f txt https://github.com/your-username/your-repo.git
 Integrate `repo2text` into CI/CD workflows to generate up-to-date codebase snapshots as part of your documentation process.
 
 ```bash
-# In a CI pipeline
 repo2text.sh -f json https://github.com/org/project.git
-# Process the JSON output with your documentation tool
 ```
 
 ### 4. Code Archiving and Snapshots
@@ -224,7 +332,7 @@ Create a human-readable, single-file snapshot of any repository at any point in 
 
 ```bash
 repo2text -md5 https://github.com/your-username/your-repo.git
-# The MD5 checksums allow you to verify file integrity later
+# MD5 checksums allow you to verify file integrity later
 ```
 
 ### 5. Cross-Repository Analysis
@@ -253,24 +361,17 @@ repo2text -f md https://github.com/org/main-product.git
 
 ---
 
-## How File Detection Works
-
-`repo2text.sh` uses a three-stage verification process to ensure only genuine text files are included in the export:
-
-1. **MIME type check** — `file --mime-type` must return a `text/*` type
-2. **Extension exclusion** — Files with extensions like `lock`, `log`, `tmp`, `bak`, `swp`, `cache` are skipped
-3. **Binary safety check** — `grep -Iq` confirms the file contains no binary data
-
-This prevents garbage output from accidentally included binaries, compiled files, or cached data — even if their extensions look like text files.
-
----
-
 ## Self-Referential Demo
 
 This script was used to export its own repository and provide the full codebase context to an AI assistant during development. The file you are reading now is a direct result of that workflow.
 
 ```bash
+# Linux/macOS
 ./repo2text.sh -f md https://github.com/debian-professional/repo2text.git
+```
+```powershell
+# Windows
+.\repo2text.ps1 -Format md https://github.com/debian-professional/repo2text.git
 ```
 
 ---
