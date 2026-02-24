@@ -1,49 +1,49 @@
 #!/bin/bash
 
-# === Konfiguration ===
+# === Configuration ===
 OUTPUT_FILE_PREFIX="repo_export"
 
-# Liste der Dateiendungen, die ignoriert werden sollen (Regex-Format)
-# Hier kannst du einfach weitere hinzufügen, z.B. |lock|tmp|bak
+# List of file extensions to ignore (regex format)
+# Add more extensions here as needed, e.g. |lock|tmp|bak
 EXCLUDE_EXTENSIONS="lock|log|tmp|bak|swp|cache"
 
-# === Funktion: Zeige Hilfe an ===
+# === Function: Show help ===
 show_help() {
-    echo "Verwendung: $0 [OPTIONEN] [GitHub-Repository-URL]"
+    echo "Usage: $0 [OPTIONS] [GitHub-Repository-URL]"
     echo ""
-    echo "Beschreibung:"
-    echo "  Klont ein GitHub-Repository, extrahiert den Text aller Textdateien"
-    echo "  und schreibt sie mit deutlichen Trennern in eine Ausgabedatei."
-    echo "  Unterstützte Formate: txt (Standard), json, md (Markdown)."
-    echo "  Anschließend wird zusätzlich ein ZIP-Archiv dieser Datei erstellt."
-    echo "  Das neu erzeugte Repository wird nach der Extraktion automatisch gelöscht."
+    echo "Description:"
+    echo "  Clones a GitHub repository, extracts the text of all text-based files"
+    echo "  and writes them with clear separators into a single output file."
+    echo "  Supported formats: txt (default), json, md (Markdown)."
+    echo "  A ZIP archive of the output file is created automatically."
+    echo "  The cloned repository is deleted after extraction."
     echo ""
-    echo "Optionen:"
-    echo "  -f, --format FORMAT   Ausgabeformat: txt, json, md (oder markdown)"
-    echo "  --flat                Nur Dateinamen ohne Pfad verwenden (flat)"
-    echo "  -o, --only PATH       Nur den angegebenen Pfad (relativ zum Repository-Stamm) exportieren"
-    echo "  -md5, --md5           Für jede Datei eine MD5-Prüfsumme berechnen und ausgeben"
-    echo "  -h, --help            Diese Hilfe anzeigen"
+    echo "Options:"
+    echo "  -f, --format FORMAT   Output format: txt, json, md (or markdown)"
+    echo "  --flat                Use filenames only, without directory paths"
+    echo "  -o, --only PATH       Export only the specified path (relative to repository root)"
+    echo "  -md5, --md5           Compute and include an MD5 checksum for each file"
+    echo "  -h, --help            Show this help message"
     echo ""
-    echo "Argumente:"
-    echo "  [GitHub-Repository-URL]  Optional: Die HTTPS- oder SSH-URL des Repos."
-    echo "                            Wenn keine URL angegeben wird, erfolgt eine interaktive Eingabe."
-    echo "                            Wird das Skript innerhalb eines Git-Repos ausgeführt,"
-    echo "                            wird automatisch die Remote-URL als Vorschlag verwendet."
+    echo "Arguments:"
+    echo "  [GitHub-Repository-URL]  Optional: The HTTPS or SSH URL of the repository."
+    echo "                            If no URL is provided, the script prompts interactively."
+    echo "                            When run inside a Git repository,"
+    echo "                            the current remote URL is suggested automatically."
 }
 
-# === Funktion: Lese Remote-URL des aktuellen Git-Repos ===
+# === Function: Read remote URL of current Git repository ===
 get_git_remote_url() {
     if ! git rev-parse --git-dir > /dev/null 2>&1; then
         echo ""
-        return 
+        return
     fi
     local remote=$(git remote | head -n1)
     [ -z "$remote" ] && echo "" && return
     echo "$(git config --get "remote.$remote.url")"
 }
 
-# === Funktion: Prüfe Git-Status ===
+# === Function: Check Git status ===
 check_git_cleanliness() {
     if ! git rev-parse --git-dir > /dev/null 2>&1; then return 0; fi
     local dirty=0
@@ -59,13 +59,13 @@ check_git_cleanliness() {
         fi
     fi
     if [ $dirty -eq 1 ] || [ "$unpushed" -gt 0 ]; then
-        echo -e "\nWARNUNG: Das aktuelle Git-Repository ist nicht sauber."
-        read -p "Trotzdem fortfahren? (j/N): " confirm
-        [[ ! "$confirm" =~ ^[jJ]$ ]] && echo "Abbruch." && exit 1
+        echo -e "\nWARNING: The current Git repository is not clean."
+        read -p "Continue anyway? (y/N): " confirm
+        [[ ! "$confirm" =~ ^[yY]$ ]] && echo "Aborted." && exit 1
     fi
 }
 
-# === Funktion: SSH zu HTTPS ===
+# === Function: Convert SSH to HTTPS ===
 convert_ssh_to_https() {
     local url="$1"
     if [[ "$url" =~ ^git@([^:]+):(.+)$ ]]; then
@@ -75,27 +75,27 @@ convert_ssh_to_https() {
     fi
 }
 
-# === Funktion: Textdatei-Prüfung ===
+# === Function: Check if file is a text file ===
 is_text_file() {
     local file="$1"
-    # 1. MIME-Check
+    # 1. MIME type check
     if ! file -b --mime-type "$file" | grep -q "^text/"; then return 1; fi
-    # 2. Ausschluss über Endungen (Regex gegen Dateiname)
+    # 2. Extension exclusion (regex against filename)
     if [[ "$file" =~ \.($EXCLUDE_EXTENSIONS)$ ]]; then return 1; fi
-    # 3. Binär-Check
+    # 3. Binary check
     if ! grep -Iq . "$file" 2>/dev/null; then return 1; fi
     return 0
 }
 
 # ============================================
-# Ausgabefunktionen (angepasst für optionale MD5)
+# Output functions
 # ============================================
 
 write_txt_header() {
     cat > "$1" <<EOF
 =========================================================================
-Repository Export | Dateien: $2
-Datum: $(date '+%Y-%m-%d %H:%M:%S') | URL: $REPO_URL
+Repository Export | Files: $2
+Date: $(date '+%Y-%m-%d %H:%M:%S') | URL: $REPO_URL
 =========================================================================
 
 EOF
@@ -114,7 +114,7 @@ write_txt_file() {
 }
 
 write_md_header() {
-    { echo "# Repo Export"; echo -e "\n- **URL:** $REPO_URL\n- **Dateien:** $2\n\n---\n"; } >> "$1"
+    { echo "# Repo Export"; echo -e "\n- **URL:** $REPO_URL\n- **Files:** $2\n\n---\n"; } >> "$1"
 }
 
 write_md_file() {
@@ -136,10 +136,10 @@ write_json_final() {
 }
 
 # ============================================
-# Hauptprogramm
+# Main program
 # ============================================
 
-# Optionen initialisieren
+# Initialize options
 OUTPUT_FORMAT="txt"
 REPO_URL=""
 flat=false
@@ -157,54 +157,60 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ ! "$OUTPUT_FORMAT" =~ ^(txt|json|md)$ ]] && echo "Format-Fehler" && exit 1
+[[ ! "$OUTPUT_FORMAT" =~ ^(txt|json|md)$ ]] && echo "ERROR: Invalid format. Use txt, json or md." && exit 1
 
-# Abhängigkeiten prüfen (jetzt mit Kenntnis der MD5-Option)
+# Check dependencies
 MISSING_PKGS=()
 for pkg in git file zip jq pv; do
     command -v "$pkg" &>/dev/null || MISSING_PKGS+=("$pkg")
 done
 if [ ${#MISSING_PKGS[@]} -ne 0 ]; then
-    echo "Fehler: Pakete fehlen: ${MISSING_PKGS[*]}"; exit 1
+    echo "ERROR: Missing required packages: ${MISSING_PKGS[*]}"; exit 1
 fi
 
-# MD5-Befehl festlegen, falls gewünscht
+# Set MD5 command if requested
 if $INCLUDE_MD5; then
     if command -v md5sum &>/dev/null; then
         compute_md5() { md5sum "$1" | cut -d' ' -f1; }
     elif command -v md5 &>/dev/null; then
         compute_md5() { md5 -q "$1"; }
     else
-        echo "Fehler: Für MD5 wird md5sum oder md5 benötigt." >&2
+        echo "ERROR: MD5 computation requires md5sum or md5." >&2
         exit 1
     fi
 fi
 
-# Repository-URL ermitteln
+# Determine repository URL
 if [[ -z "$REPO_URL" ]]; then
     check_git_cleanliness
     DEFAULT_URL=$(get_git_remote_url)
-    read -p "Repository-URL [${DEFAULT_URL}]: " input_url
-    REPO_URL=${input_url:-$DEFAULT_URL}
+    if [ -n "$DEFAULT_URL" ]; then
+        echo "Detected repository: $DEFAULT_URL"
+        read -p "Repository URL [Enter to confirm]: " input_url
+        REPO_URL=${input_url:-$DEFAULT_URL}
+    else
+        read -p "Repository URL: " input_url
+        REPO_URL="$input_url"
+    fi
 fi
 
-[ -z "$REPO_URL" ] && exit 1
+[ -z "$REPO_URL" ] && echo "ERROR: No repository URL provided." && exit 1
 
 REPO_URL=$(convert_ssh_to_https "$REPO_URL")
 REPO_NAME=$(basename "$REPO_URL" .git)
 TEMP_DIR="temp_repo_$(date +%s)"
 
-echo "Klone $REPO_URL ..."
-git clone --depth 1 "$REPO_URL" "$TEMP_DIR" &>/dev/null || exit 1
+echo "Cloning $REPO_URL ..."
+git clone --depth 1 "$REPO_URL" "$TEMP_DIR" &>/dev/null || { echo "ERROR: Failed to clone repository."; exit 1; }
 
 cd "$TEMP_DIR" && COMMIT_HASH=$(git rev-parse HEAD) && BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD) && cd ..
 
-# Prüfe, ob ein Teilbaum angegeben wurde
+# Check if a subdirectory was specified
 START_DIR="$TEMP_DIR"
 if [ -n "$ONLY_PATH" ]; then
     START_DIR="$TEMP_DIR/$ONLY_PATH"
     if [ ! -d "$START_DIR" ]; then
-        echo "Fehler: Der angegebene Pfad '$ONLY_PATH' existiert nicht im Repository." >&2
+        echo "ERROR: The specified path '$ONLY_PATH' does not exist in the repository." >&2
         rm -rf "$TEMP_DIR"
         exit 1
     fi
@@ -213,10 +219,10 @@ fi
 OUTPUT_FILE="${OUTPUT_FILE_PREFIX}_${REPO_NAME}_$(date +%Y%m%d_%H%M%S).${OUTPUT_FORMAT}"
 file_count=0
 
-echo "Analysiere..."
+echo "Analysing..."
 total_files=$(find "$START_DIR" -type f \( -path "$TEMP_DIR/.gitignore" -o -path "$TEMP_DIR/.gitattributes" -o -not -path '*/.*' \) | wc -l)
 
-echo "Extrahiere..."
+echo "Extracting..."
 while IFS= read -r -d '' full_path; do
     rel_path="${full_path#$TEMP_DIR/}"
 
@@ -226,7 +232,7 @@ while IFS= read -r -d '' full_path; do
     fi
 
     if is_text_file "$full_path"; then
-        # MD5 berechnen falls gewünscht
+        # Compute MD5 if requested
         md5_sum=""
         if $INCLUDE_MD5; then
             md5_sum=$(compute_md5 "$full_path")
@@ -247,7 +253,7 @@ while IFS= read -r -d '' full_path; do
     fi
 done < <(find "$START_DIR" -type f \( -path "$TEMP_DIR/.gitignore" -o -path "$TEMP_DIR/.gitattributes" -o -not -path '*/.*' \) -print0 | pv -0 -p -t -e -r -s "$total_files" -l)
 
-# Nachbereitung je nach Format
+# Post-processing
 if [[ "$OUTPUT_FORMAT" == "json" ]]; then
     write_json_final "json.tmp" "$OUTPUT_FILE" "$file_count" && rm "json.tmp"
 else
@@ -260,13 +266,14 @@ zip -q "${OUTPUT_FILE}.zip" "$OUTPUT_FILE"
 rm -rf "$TEMP_DIR"
 
 echo "==============================================="
-echo "Fertig! $file_count Dateien extrahiert."
+echo "Done! $file_count files extracted."
 if [ -n "$ONLY_PATH" ]; then
-    echo "Exportierter Pfad: $ONLY_PATH"
+    echo "Exported path: $ONLY_PATH"
 fi
 if $INCLUDE_MD5; then
-    echo "MD5-Prüfsummen wurden berechnet."
+    echo "MD5 checksums included."
 fi
 echo "Output: $(pwd)/$OUTPUT_FILE"
+echo "ZIP:    $(pwd)/${OUTPUT_FILE}.zip"
 echo "==============================================="
 
